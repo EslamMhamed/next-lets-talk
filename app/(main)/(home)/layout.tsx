@@ -1,7 +1,10 @@
 import NavBar from "@/components/NavBar"
-import { ReactNode } from "react"
 
-function HomeLayout({children} :{children: ReactNode}) {
+function HomeLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <main className="relative">
         <NavBar />
