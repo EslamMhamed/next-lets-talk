@@ -1,7 +1,12 @@
+import MainMenu from "@/components/MainMenu"
+import StatusBar from "@/components/StatusBar"
 
 function HomePage() {
   return (
-    <div>let's talk app</div>
+    <div className="flex flex-col gap-32 pt-20 pl-20 items-center max-md:gap-10 md:flex-row animate-fade-in">
+      <StatusBar />
+      <MainMenu />
+    </div>
   )
 }
 
