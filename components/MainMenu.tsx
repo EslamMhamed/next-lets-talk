@@ -5,13 +5,13 @@ import MenuItemCard from "./MenuItemCard"
 import { Button } from "./ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog"
 import { Textarea } from "./ui/textarea"
-import {  useState } from "react"
+import {  useEffect, useState } from "react"
 import { Input } from "./ui/input"
 import DatePicker from "react-datepicker";
 import { useUser } from "@clerk/nextjs"
 import Loading from "./Loading"
-
-
+import { useStreamVideoClient } from "@stream-io/video-react-sdk"
+import { toast } from "sonner"
 
 
 const initialValues = {
@@ -24,14 +24,80 @@ const MainMenu = () => {
     const router = useRouter();
     const [values, setValues] = useState(initialValues);
     const [meetingState, setMeetingState] = useState< 'Schedule' | 'Instant' | undefined>(undefined);
-    const user= useUser()
+    const {user}= useUser()
+    const client = useStreamVideoClient()
 
-    if(!user){
+    
+
+    async function createMeeting() {
+      if(!user) return router.push('/sign-in')
+      if(!client) return router.push('/')
+    
+
+    try {
+      if(!values.dateTime){
+        toast('Please select a date and time', {
+          duration:300,
+          className:'bg-gray-300 rounded-3xl py-8 px-5 justify-center '
+        })
+        return;
+      }
+
+      const id = crypto.randomUUID()
+      const call = client?.call('default', id)
+      if(!call) throw new Error('Failed to create meeting')
+      const startsAt = values.dateTime.toISOString() || new Date(Date.now()).toISOString()
+      const description = values.description || 'No description'
+
+      await call.getOrCreate({
+      data:{
+        starts_at:startsAt,
+        custom:{
+          description
+        }
+      }
+    })
+
+    await call.updateCallMembers({
+      update_members: [{user_id:user.id}]
+    })
+
+    if(meetingState === 'Instant'){
+      router.push(`/meeting/${call.id}`)
+      toast(`Setting up your meeting`, {
+        duration:300,
+        className: 'bg-gray-300 rounded-3xl py-8 px-5 justify-center '
+      })
+    }
+
+    if(meetingState === 'Schedule'){
+      router.push(`/upcoming`)
+      toast(`Your meeting is schduled at ${values.dateTime}`, {
+        duration:500,
+        className: 'bg-gray-300 rounded-3xl py-8 px-5 justify-center '
+      })
+    }
+
+    } catch (error:any) {
+      toast(`Failed to create Meeting${error.message}`, {
+        duration:300,
+        className: 'bg-gray-300 rounded-3xl py-8 px-5 justify-center '
+      })
+    }
+    }
+
+    useEffect(()=>{
+      if(meetingState){
+        createMeeting()
+      }
+    }, [meetingState])
+
+    if(!user || !client){
       return <Loading />
     }
      
     return (
-        <section className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+        <section className="grid grid-cols-2  gap-3 max-sm:grid-cols-1">
             <Dialog >
                 <DialogTrigger >
                     <MenuItemCard
